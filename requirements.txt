@@ -1,0 +1,3 @@
+diacord.py
+flask
+python-dotenv
