@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from keep_alive import keep_alive
 import os
 from dotenv import load_dotenv
 
@@ -16,20 +15,28 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='p?', intents=intents)
 
+# sticky_messages[channel_id] = {"text": str, "last_message": discord.Message}
 sticky_messages = {}
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
 async def sticky(ctx, *, message: str):
-    sticky_messages[ctx.channel.id] = message
+    sticky_messages[ctx.channel.id] = {"text": message, "last_message": None}
     await ctx.send(f"sticky message set for this channel:\n> {message}")
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
 async def removesticky(ctx):
     if ctx.channel.id in sticky_messages:
+        # Delete last sticky message if it exists
+        last_msg = sticky_messages[ctx.channel.id].get("last_message")
+        if last_msg:
+            try:
+                await last_msg.delete()
+            except:
+                pass
         del sticky_messages[ctx.channel.id]
-        await ctx.send("sticky message removed from this channel !")
+        await ctx.send("sticky message removed from this channel!")
     else:
         await ctx.send("no sticky message is set for this channel")
 
@@ -47,8 +54,8 @@ async def on_member_update(before, after):
         channel = discord.utils.get(after.guild.text_channels, name="boosts")
         if channel:
             embed = discord.Embed(
-   description=f"_ _\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀﹒﹒ —  {user}  ♡\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀ <:bow_red:1371440730597363715>  __boosted__ **/pota**\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀` check `﹕⠀*[perks](https://discord.com/channels/1319396490543890482/1371318261509263460)*\n_ _",
-                color=d63737
+                description=f"_ _\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀﹒﹒ —  {after.mention}  ♡\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀ <:bow_red:1371440730597363715>  __boosted__ **/pota**\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀` check `﹕⠀*[perks](https://discord.com/channels/1319396490543890482/1371318261509263460)*\n_ _",
+                color=0xd63737
             )
             embed.set_thumbnail(url=after.avatar.url if after.avatar else after.default_avatar.url)
             await channel.send(embed=embed)
@@ -59,11 +66,20 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    if message.channel.id in sticky_messages:
+    data = sticky_messages.get(message.channel.id)
+    if data:
         try:
-            await message.channel.send(sticky_messages[message.channel.id])
+            # Delete previous sticky message
+            if data.get("last_message"):
+                try:
+                    await data["last_message"].delete()
+                except:
+                    pass
+            # Send new sticky and save the message object
+            new_msg = await message.channel.send(data["text"])
+            sticky_messages[message.channel.id]["last_message"] = new_msg
         except discord.Forbidden:
-            print(f"missing perm to send sticky message in {message.channel.name}")
+            print(f"missing permission to send sticky message in {message.channel.name}")
 
 @bot.event
 async def on_ready():
