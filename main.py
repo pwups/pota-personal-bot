@@ -56,6 +56,11 @@ async def calc(ctx, *, expression: str):
     except Exception as e:
         await ctx.send(f"Error: `{e}`")
 
+@bot.command()
+async def say(ctx, *, message: str):
+    await ctx.message.delete()  # Delete the command message to keep it clean (optional)
+    await ctx.send(message)
+
 @bot.event
 async def on_member_update(before, after):
     if before.premium_since is None and after.premium_since is not None:
@@ -88,64 +93,6 @@ async def on_message(message):
             sticky_messages[message.channel.id]["last_message"] = new_msg
         except discord.Forbidden:
             print(f"missing permission to send sticky message in {message.channel.name}")
-
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
-    print("------ Vanity Roles feature is active ------")
-def _has_keyword(status: discord.CustomActivity | None, keyword: str) -> bool:
-    return bool(status and status.name and keyword.lower() in status.name.lower())
-
-@bot.event
-async def on_presence_update(before: discord.Member, after: discord.Member):
-    # Ignore other servers the bot might share
-    if after.guild.id != GUILD_ID:
-        return
-
-    role = after.guild.get_role(VANITY_ROLE_ID)
-    if role is None:
-        return  # Role ID is wrong or bot can’t see the role
-
-    # Find any CustomActivity (the "set a status" in Discord)
-    before_status = next((a for a in before.activities if isinstance(a, discord.CustomActivity)), None)
-    after_status = next((a for a in after.activities if isinstance(a, discord.CustomActivity)), None)
-
-    had_keyword = _has_keyword(before_status, VANITY_KEYWORD)
-    has_keyword_now = _has_keyword(after_status, VANITY_KEYWORD)
-
-    channel = after.guild.get_channel(ANNOUNCE_CHANNEL_ID)
-
-    # ✅ Keyword added ➜ give role
-    if has_keyword_now and not had_keyword:
-        if role not in after.roles:
-            try:
-                await after.add_roles(role, reason="User added vanity keyword to status")
-            except discord.Forbidden:
-                print("[VanityRoles] Missing permissions to add role.")
-            else:
-                if channel:
-                    embed = discord.Embed(
-                        title="Vanity Role Assigned",
-                        description=f"_ _　　　{after.mention}﹒ *repped* **{VANITY_KEYWORD} *!***\n_ _　　 ⤹ 　thanks for the *support* <:kassy:1372204371462455420>\n-# _ _　　　　　 ﹒　[check our perks!](https://discord.com/channels/1319396490543890482/1371318261509263460) 　﹒　    ⟡​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​",
-                        color=RED
-                    )
-                    await channel.send(embed=embed)
-
-    # ❌ Keyword removed ➜ remove role
-    elif had_keyword and not has_keyword_now:
-        if role in after.roles:
-            try:
-                await after.remove_roles(role, reason="User removed vanity keyword from status")
-            except discord.Forbidden:
-                print("[VanityRoles] Missing permissions to remove role.")
-            else:
-                if channel:
-                    embed = discord.Embed(
-                        title="Vanity Role Removed",
-                        description=f"_ _　　　{after.mention}﹒ *removed* **{VANITY_KEYWORD} from their status *!***​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​",
-                        color=WHITE
-                    )
-                    await channel.send(embed=embed)
 
 @bot.event
 async def on_ready():
