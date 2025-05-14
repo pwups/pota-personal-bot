@@ -20,6 +20,9 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='p?', intents=intents)
 
+RED = discord.Color.from_str("#ED5858")
+WHITE = discord.Color.from_str("#FFFFFF")
+
 # sticky_messages[channel_id] = {"text": str, "last_message": discord.Message}
 sticky_messages = {}
 
@@ -124,7 +127,7 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
                     embed = discord.Embed(
                         title="Vanity Role Assigned",
                         description=f"_ _　　　{after.mention}﹒ *repped* **{VANITY_KEYWORD} *!***\n_ _　　 ⤹ 　thanks for the *support* <:kassy:1372204371462455420>\n-# _ _　　　　　 ﹒　[check our perks!](https://discord.com/channels/1319396490543890482/1371318261509263460) 　﹒　    ⟡​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​",
-                        color=discord.Color.green()
+                        color=RED
                     )
                     await channel.send(embed=embed)
 
@@ -140,7 +143,7 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
                     embed = discord.Embed(
                         title="Vanity Role Removed",
                         description=f"_ _　　　{after.mention}﹒ *removed* **{VANITY_KEYWORD} from their status *!***​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​",
-                        color=discord.Color.red()
+                        color=WHITE
                     )
                     await channel.send(embed=embed)
 
