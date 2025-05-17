@@ -107,7 +107,7 @@ async def uploads(ctx):
             total_layouts += lo
 
     embed = discord.Embed(
-        description=f"_ _\n             <a:01charmzheart:1371440749341839432>  **you have a total of:**  ⁺ ˖˚\n_ _         * ✦．  **0000** icons uploaded  <a:redpurse:1371482936041279641>\n_ _          <:bow_red:1371440730597363715> **0000** layouts uploaded  ︵ ｡˚  \n_ _         ◞⁺⊹．  **0000** deleted uploads  <a:01_redangry:1371440736238829711>\n-# _ _                 <a:010sparkle:1371482938373443695>  take breaks whenever, love\n_ _",
+        description=f"_ _\n             <a:01charmzheart:1371440749341839432>  **you have a total of:**  ⁺ ˖˚\n_ _         * ✦．  **{total_attachments}** icons uploaded  <a:redpurse:1371482936041279641>\n_ _          <:bow_red:1371440730597363715> **{total_layouts}** layouts uploaded  ︵ ｡˚  \n_ _         ◞⁺⊹．  **{total_removed_uploads}** deleted uploads  <a:01_redangry:1371440736238829711>\n-# _ _                 <a:010sparkle:1371482938373443695>  take breaks whenever, love\n_ _",
         color=RED,
         timestamp=discord.utils.utcnow()
     )
