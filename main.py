@@ -118,6 +118,8 @@ async def count_uploads_in_thread(thread, user):
     embed.set_author(name=user.name, icon_url=guild.icon.url if guild.icon else None)
     embed.set_footer(text="your upload stats")
     await ctx.send(embed=embed)
+       except Exception as e:
+           await ctx.send(f"Error: {e}")
 
 @bot.event
 async def on_message_delete(message):
