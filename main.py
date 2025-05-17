@@ -82,14 +82,18 @@ async def uploads(ctx):
     total_removed_uploads = deleted_uploads.get(user.id, 0)
 
     async def count_uploads_in_thread(thread):
-        attachments = 0
-        layouts = 0
+    attachments = 0
+    layouts = 0
+    try:
+        await thread.join()  # <-- Ensure the bot can read messages
         async for msg in thread.history(limit=None):
             if msg.author.id == user.id:
                 attachments += len(msg.attachments)
                 if "```" in msg.content:
                     layouts += 1
-        return attachments, layouts
+    except discord.Forbidden:
+        pass
+    return attachments, layouts
 
     for forum_id in ICON_FORUM_IDS:
         forum = guild.get_channel(forum_id)
