@@ -20,13 +20,15 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='p?', intents=intents)
 
-ICON_FORUM_IDS = [
-    1371835079684263936, 1371834983466930226, 1371835187456905236,
-    1371835024588144731, 1372211755824189511, 1371835574960263288,
-    1371835441010966558, 1371835499043491912, 1371835679213883472,
-    1371835626646929489
-]
+ICON_FORUM_IDS = [1371687868690337843, 1371688017785258056]
 LAYOUT_FORUM_ID = 1371835736705466408
+
+upload_data = {
+    "attachments": 0,
+    "layouts": 0,
+    "deleted_attachments": 0,
+    "deleted_layouts": 0
+}
 
 # Store deleted uploads (in-memory)
 deleted_uploads = {}
@@ -68,69 +70,51 @@ async def calc(ctx, *, expression: str):
         await ctx.send(f"Error: `{e}`")
 
 @bot.command()
+async def uploads(ctx):
+    embed = discord.Embed(
+        title="Uploader Stats",
+        description=(
+            f"<a:01charmzheart:1371440749341839432> **total uploads**  ⁺ ˖˚\n"
+            f"- imgs: `{upload_data['attachments']}`\n"
+            f"- layouts: `{upload_data['layouts']}`\n\n"
+            f"**<a:redpurse:1371482936041279641> **deleted uploads**  ◞⁺ ⊹．\n"
+            f"- imgs: `{upload_data['deleted_attachments']}`\n"
+            f"- layouts: `{upload_data['deleted_layouts']}`"
+        ),
+        color=RED,
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else discord.Embed.Empty)
+    embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+    embed.set_footer(text="your upload stats")
+    await ctx.send(embed=embed)
+
+@bot.command()
 async def say(ctx, *, message: str):
     await ctx.message.delete()  # Delete the command message to keep it clean (optional)
     await ctx.send(message)
 
-@bot.command()
-async def uploads(ctx):
-    user = ctx.author
-    guild = ctx.guild
-
-    total_attachments = 0
-    total_layouts = 0
-    total_removed_uploads = deleted_uploads.get(user.id, 0)
-
-async def count_uploads_in_thread(thread, user):
-    attachments = 0
-    layouts = 0
-    try:
-        await thread.join()  # Join thread to access history
-        async for msg in thread.history(limit=None):
-            if msg.author.id == user.id:
-                attachments += len(msg.attachments)
-                if "```" in msg.content:
-                    layouts += 1
-    except discord.Forbidden:
-        pass
-    return attachments, layouts
-
-    for forum_id in ICON_FORUM_IDS:
-        forum = guild.get_channel(forum_id)
-        if forum:
-            threads = [t async for t in forum.threads()]
-            for thread in threads:
-                att, _ = await count_uploads_in_thread(thread)
-                total_attachments += att
-
-    layout_forum = guild.get_channel(LAYOUT_FORUM_ID)
-    if layout_forum:
-        threads = await layout_forum.active_threads()
-        for thread in threads:
-            _, lo = await count_uploads_in_thread(thread)
-            total_layouts += lo
-
-    embed = discord.Embed(
-        description=f"_ _\n             <a:01charmzheart:1371440749341839432>  **you have a total of:**  ⁺ ˖˚\n_ _         * ✦．  **{total_attachments}** icons uploaded  <a:redpurse:1371482936041279641>\n_ _          <:bow_red:1371440730597363715> **{total_layouts}** layouts uploaded  ︵ ｡˚  \n_ _         ◞⁺⊹．  **{total_removed_uploads}** deleted uploads  <a:01_redangry:1371440736238829711>\n-# _ _                 <a:010sparkle:1371482938373443695>  take breaks whenever, love\n_ _",
-        color=RED,
-        timestamp=discord.utils.utcnow()
-    )
-    embed.set_author(name=user.name, icon_url=guild.icon.url if guild.icon else None)
-    embed.set_footer(text="your upload stats")
-    await ctx.send(embed=embed)
        except Exception as e:
            await ctx.send(f"Error: {e}")
 
 @bot.event
+async def on_message(message):
+    if message.channel.id in ICON_FORUM_IDS:
+        if message.attachments:
+            upload_data["attachments"] += 1
+    elif message.channel.id == LAYOUT_FORUM_ID:
+        if "```" in message.content:
+            upload_data["layouts"] += 1
+    await bot.process_commands(message)
+
+@bot.event
 async def on_message_delete(message):
-    if message.guild is None or message.author.bot:
-        return
-
-    has_attachment = len(message.attachments) > 0
-    is_layout = "```" in message.content
-
-    if has_attachment or is_layout:
-        deleted_uploads[message.author.id] = deleted_uploads.get(message.author.id, 0) + 1
+    if message.channel.id in ICON_FORUM_IDS:
+        if message.attachments:
+            upload_data["deleted_attachments"] += 1
+    elif message.channel.id == LAYOUT_FORUM_ID:
+        if "```" in message.content:
+            upload_data["deleted_layouts"] += 1
 
 @bot.event
 async def on_member_update(before, after):
