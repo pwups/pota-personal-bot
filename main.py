@@ -94,7 +94,7 @@ async def uploads(ctx):
     for forum_id in ICON_FORUM_IDS:
         forum = guild.get_channel(forum_id)
         if forum:
-            threads = await forum.active_threads()
+            threads = [t async for t in forum.threads()]
             for thread in threads:
                 att, _ = await count_uploads_in_thread(thread)
                 total_attachments += att
