@@ -81,7 +81,7 @@ async def uploads(ctx):
     total_layouts = 0
     total_removed_uploads = deleted_uploads.get(user.id, 0)
 
-    async def count_uploads_in_thread(thread, user):
+async def count_uploads_in_thread(thread, user):
     attachments = 0
     layouts = 0
     try:
