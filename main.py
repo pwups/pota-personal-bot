@@ -88,14 +88,13 @@ async def uploads(ctx):
     embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
     embed.set_footer(text="your upload stats")
     await ctx.send(embed=embed)
+    except Exception as e:
+           await ctx.send(f"Error: {e}")
 
 @bot.command()
 async def say(ctx, *, message: str):
     await ctx.message.delete()  # Delete the command message to keep it clean (optional)
     await ctx.send(message)
-
-       except Exception as e:
-           await ctx.send(f"Error: {e}")
 
 @bot.event
 async def on_message(message):
