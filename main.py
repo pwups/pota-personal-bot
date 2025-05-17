@@ -20,6 +20,17 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='p?', intents=intents)
 
+ICON_FORUM_IDS = [
+    1371835079684263936, 1371834983466930226, 1371835187456905236,
+    1371835024588144731, 1372211755824189511, 1371835574960263288,
+    1371835441010966558, 1371835499043491912, 1371835679213883472,
+    1371835626646929489
+]
+LAYOUT_FORUM_ID = 1371835736705466408
+
+# Store deleted uploads (in-memory)
+deleted_uploads = {}
+
 RED = discord.Color.from_str("#ED5858")
 WHITE = discord.Color.from_str("#FFFFFF")
 
@@ -61,10 +72,64 @@ async def say(ctx, *, message: str):
     await ctx.message.delete()  # Delete the command message to keep it clean (optional)
     await ctx.send(message)
 
+@bot.command()
+async def uploads(ctx):
+    user = ctx.author
+    guild = ctx.guild
+
+    total_attachments = 0
+    total_layouts = 0
+    total_removed_uploads = deleted_uploads.get(user.id, 0)
+
+    async def count_uploads_in_thread(thread):
+        attachments = 0
+        layouts = 0
+        async for msg in thread.history(limit=None):
+            if msg.author.id == user.id:
+                attachments += len(msg.attachments)
+                if "```" in msg.content:
+                    layouts += 1
+        return attachments, layouts
+
+    for forum_id in ICON_FORUM_IDS:
+        forum = guild.get_channel(forum_id)
+        if forum:
+            threads = await forum.active_threads()
+            for thread in threads:
+                att, _ = await count_uploads_in_thread(thread)
+                total_attachments += att
+
+    layout_forum = guild.get_channel(LAYOUT_FORUM_ID)
+    if layout_forum:
+        threads = await layout_forum.active_threads()
+        for thread in threads:
+            _, lo = await count_uploads_in_thread(thread)
+            total_layouts += lo
+
+    embed = discord.Embed(
+        description=f"_ _\n             <a:01charmzheart:1371440749341839432>  **you have a total of:**  ⁺ ˖˚\n_ _         * ✦．  **0000** icons uploaded  <a:redpurse:1371482936041279641>\n_ _          <:bow_red:1371440730597363715> **0000** layouts uploaded  ︵ ｡˚  \n_ _         ◞⁺⊹．  **0000** deleted uploads  <a:01_redangry:1371440736238829711>\n-# _ _                 <a:010sparkle:1371482938373443695>  take breaks whenever, love\n_ _",
+        color=RED,
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_author(name=user.name, icon_url=guild.icon.url if guild.icon else None)
+    embed.set_footer(text="your upload stats")
+    await ctx.send(embed=embed)
+
+@bot.event
+async def on_message_delete(message):
+    if message.guild is None or message.author.bot:
+        return
+
+    has_attachment = len(message.attachments) > 0
+    is_layout = "```" in message.content
+
+    if has_attachment or is_layout:
+        deleted_uploads[message.author.id] = deleted_uploads.get(message.author.id, 0) + 1
+
 @bot.event
 async def on_member_update(before, after):
     if before.premium_since is None and after.premium_since is not None:
-        channel = discord.utils.get(after.guild.text_channels, name="boosts")
+        channel = discord.utils.get(after.guild.text_channels, name="﹒mail")
         if channel:
             embed = discord.Embed(
                 description=f"_ _\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀﹒﹒ —  {after.mention}  ♡\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀ <:bow_red:1371440730597363715>  __boosted__ **/pota**\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀` check `﹕⠀*[perks](https://discord.com/channels/1319396490543890482/1371318261509263460)*\n_ _",
