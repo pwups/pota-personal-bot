@@ -81,11 +81,11 @@ async def uploads(ctx):
     total_layouts = 0
     total_removed_uploads = deleted_uploads.get(user.id, 0)
 
-    async def count_uploads_in_thread(thread):
+    async def count_uploads_in_thread(thread, user):
     attachments = 0
     layouts = 0
     try:
-        await thread.join()  # <-- Ensure the bot can read messages
+        await thread.join()  # Join thread to access history
         async for msg in thread.history(limit=None):
             if msg.author.id == user.id:
                 attachments += len(msg.attachments)
