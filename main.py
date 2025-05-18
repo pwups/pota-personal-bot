@@ -8,9 +8,6 @@ load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
-VANITY_ROLE_ID = 1372213876887781487
-ANNOUNCE_CHANNEL_ID = 1372210728378957865
-VANITY_KEYWORD = "/pota"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -19,19 +16,6 @@ intents.messages = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='p?', intents=intents)
-
-ICON_FORUM_IDS = [1371687868690337843, 1371688017785258056]
-LAYOUT_FORUM_ID = 1371835736705466408
-
-upload_data = {
-    "attachments": 0,
-    "layouts": 0,
-    "deleted_attachments": 0,
-    "deleted_layouts": 0
-}
-
-# Store deleted uploads (in-memory)
-deleted_uploads = {}
 
 RED = discord.Color.from_str("#ED5858")
 WHITE = discord.Color.from_str("#FFFFFF")
@@ -70,50 +54,12 @@ async def calc(ctx, *, expression: str):
         await ctx.send(f"Error: `{e}`")
 
 @bot.command()
-async def uploads(ctx):
-    embed = discord.Embed(
-        title="Uploader Stats",
-        description=(
-            f"<a:01charmzheart:1371440749341839432> **total uploads**  ⁺ ˖˚\n"
-            f"- imgs: `{upload_data['attachments']}`\n"
-            f"- layouts: `{upload_data['layouts']}`\n\n"
-            f"**<a:redpurse:1371482936041279641> **deleted uploads**  ◞⁺ ⊹．\n"
-            f"- imgs: `{upload_data['deleted_attachments']}`\n"
-            f"- layouts: `{upload_data['deleted_layouts']}`"
-        ),
-        color=RED,
-        timestamp=discord.utils.utcnow()
-    )
-    embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else discord.Embed.Empty)
-    embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
-    embed.set_footer(text="your upload stats")
-    await ctx.send(embed=embed)
-    except Exception as e:
-           await ctx.send(f"Error: {e}")
-
-@bot.command()
 async def say(ctx, *, message: str):
     await ctx.message.delete()  # Delete the command message to keep it clean (optional)
     await ctx.send(message)
 
-@bot.event
-async def on_message(message):
-    if message.channel.id in ICON_FORUM_IDS:
-        if message.attachments:
-            upload_data["attachments"] += 1
-    elif message.channel.id == LAYOUT_FORUM_ID:
-        if "```" in message.content:
-            upload_data["layouts"] += 1
-    await bot.process_commands(message)
-
-@bot.event
-async def on_message_delete(message):
-    if message.channel.id in ICON_FORUM_IDS:
-        if message.attachments:
-            upload_data["deleted_attachments"] += 1
-    elif message.channel.id == LAYOUT_FORUM_ID:
-        if "```" in message.content:
-            upload_data["deleted_layouts"] += 1
+       except Exception as e:
+           await ctx.send(f"Error: {e}")
 
 @bot.event
 async def on_member_update(before, after):
@@ -147,6 +93,40 @@ async def on_message(message):
             sticky_messages[message.channel.id]["last_message"] = new_msg
         except discord.Forbidden:
             print(f"missing permission to send sticky message in {message.channel.name}")
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    if str(payload.emoji) != "😆":
+        return
+
+    if payload.channel_id == 1371776724269797397:
+        return  # prevent triggering in laughboard itself
+
+    guild = bot.get_guild(payload.guild_id)
+    if not guild:
+        return
+
+    channel = guild.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+
+    # Count 😆 reactions
+    reaction = discord.utils.get(message.reactions, emoji="😆")
+    if reaction and reaction.count == 2:
+        # Build embed
+        embed = discord.Embed(
+            description=message.content,
+            color=WHITE,
+            timestamp=message.created_at
+        )
+        embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
+        embed.add_field(name="jump to message", value=f"[click here ! !]({message.jump_url})", inline=False)
+        if message.attachments:
+            embed.set_image(url=message.attachments[0].url)
+
+        # Send to laughboard
+        laughboard_channel = guild.get_channel(1371776724269797397)
+        if laughboard_channel:
+            await laughboard_channel.send(embed=embed)
 
 @bot.event
 async def on_ready():
