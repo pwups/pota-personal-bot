@@ -57,10 +57,7 @@ async def calc(ctx, *, expression: str):
 async def say(ctx, *, message: str):
     await ctx.message.delete()  # Delete the command message to keep it clean (optional)
     await ctx.send(message)
-
-       except Exception as e:
-           await ctx.send(f"Error: {e}")
-
+    
 @bot.event
 async def on_member_update(before, after):
     if before.premium_since is None and after.premium_since is not None:
