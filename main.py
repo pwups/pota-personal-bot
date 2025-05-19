@@ -6,6 +6,7 @@ from discord.ui import View, Button
 from dotenv import load_dotenv
 from datetime import date, timedelta
 from dotenv import dotenv_values
+import json
 
 with open("config.json", "r") as f:
     config = json.load(f)
