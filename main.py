@@ -10,9 +10,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+LEVELS_FILE = "levels.json"
+
 def load_levels():
-    with open("levels.json", "r") as f:
-        return json.load(f)
+    if os.path.exists(LEVELS_FILE):
+        with open(LEVELS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_levels(data):
+    with open(LEVELS_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def get_level(xp):
+    return int((xp / 50) ** 0.5)  # simple level formula
 
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
@@ -267,6 +278,28 @@ async def generate_card(user, user_data):
     path = f"rankcard_{user.id}.png"
     card.save(path)
     return path
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    # XP system
+    levels = load_levels()
+    user_id = str(message.author.id)
+
+    if user_id not in levels:
+        levels[user_id] = {"xp": 0, "level": 1}
+
+    xp_gain = random.randint(5, 15)
+    levels[user_id]["xp"] += xp_gain
+
+    new_level = get_level(levels[user_id]["xp"])
+    if new_level > levels[user_id]["level"]:
+        levels[user_id]["level"] = new_level
+        await message.channel.send(f"{message.author.mention} leveled up to **level {new_level}**!")
+
+    save_levels(levels)
 
 keep_alive()
 bot.run(TOKEN)
