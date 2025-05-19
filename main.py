@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from datetime import date, timedelta
 from dotenv import dotenv_values
 
+with open("config.json", "r") as f:
+    config = json.load(f)
+
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
 laughboard_data = {}  # {original_message_id: laughboard_message_id}
