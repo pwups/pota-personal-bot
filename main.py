@@ -101,10 +101,10 @@ async def leaderboard(ctx):
         embed = discord.Embed(title="level leaderboard <a:1G4_star_red:1372168764392476693>", color=RED)
         for index, (user_id, stats) in enumerate(sorted_data[start:end], start=start + 1):
             user = ctx.guild.get_member(int(user_id))
-            name = user.display_name if user else f"User ID {user_id}"
+            name = user.display_name if user else f"<@{user_id}>"
             embed.add_field(
                 name=f"{index}. {name}",
-                value=f"Level: {stats['level']} | XP: {stats['xp']}",
+                value=f"level: **{stats['level']}** | XP: **{stats['xp']}**",
                 inline=False
             )
         embed.set_footer(text=f"page {page + 1}/{total_pages}")
