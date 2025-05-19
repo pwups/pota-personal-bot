@@ -13,6 +13,9 @@ laughboard_data = {}  # {original_message_id: laughboard_message_id}
 LAUGHBOARD_CHANNEL_ID = 1371776724269797397
 TARGET_EMOJI = "😆"
 THRESHOLD = 2
+CHANNEL_ID = int(config["CHANNEL_ID"])
+highest_score_hash = {}
+current_score_hash = {}
 
 intents = discord.Intents.default()
 intents.members = True
