@@ -193,7 +193,7 @@ async def generate_card(user, user_data):
     card = Image.new("RGB", (width, height), "#1e1e1e")
     draw = ImageDraw.Draw(card)
 
-    font = ImageFont.truetype("arial.ttf", 20)
+    font = ImageFont.load_default()
 
     bar_xp = user_data["xp"]
     next_level_xp = user_data["level"] * 100
