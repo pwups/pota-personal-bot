@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, pages
 from keep_alive import keep_alive
 import os
 import json
@@ -78,6 +78,37 @@ async def rank(ctx, member: discord.Member = None):
     file = discord.File(path, filename="rank.png")
     await ctx.send(file=file)
     os.remove(path)
+
+@bot.command()
+async def leaderboard(ctx):
+    try:
+        with open("levels.json", "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return await ctx.send("> <:00_warning:1373921609601126441> no xp data found.")
+
+    # Sort users by XP
+    sorted_users = sorted(data.items(), key=lambda x: x[1].get("xp", 0), reverse=True)
+
+    entries = []
+    for index, (user_id, stats) in enumerate(sorted_users):
+        user = ctx.guild.get_member(int(user_id))
+        name = user.name if user else f"<Unknown User {user_id}>"
+        entries.append(f"{index+1}. {name} — {stats.get('xp', 0)} XP, Level {stats.get('level', 0)}")
+
+    # Paginate with 10 entries per page
+    pages_list = []
+    for i in range(0, len(entries), 10):
+        embed = discord.Embed(
+            title="level leaderboard <a:1G4_star_red:1372168764392476693>",
+            description="\n".join(entries[i:i+10]),
+            color=RED
+        )
+        embed.set_footer(text=f"page {i // 10 + 1}/{(len(entries) - 1) // 10 + 1}")
+        pages_list.append(embed)
+
+    paginator = pages.Paginator(pages=pages_list, timeout=60.0)
+    await paginator.respond(ctx.interaction if hasattr(ctx, "interaction") else ctx)
 
 @bot.event
 async def on_member_update(before, after):
