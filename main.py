@@ -2,6 +2,9 @@ import discord
 from discord.ext import commands
 from keep_alive import keep_alive
 import os
+import json
+import aiofiles
+from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
 
 load_dotenv()
