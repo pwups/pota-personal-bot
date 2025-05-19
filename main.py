@@ -10,7 +10,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LEVELS_FILE = "levels.json"
+def load_levels():
+    if os.path.exists(LEVELS_FILE):
+        with open (LEVELS_FILE, "r") as f:
+            return json.load(f)
+            return{}
+
+def save_levels(data):
+    with open (LEVELS_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def get_level(xp):
+    return int((xp / 50) ** 0.5)
 
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
