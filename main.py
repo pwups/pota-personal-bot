@@ -27,6 +27,11 @@ WHITE = discord.Color.from_str("#FFFFFF")
 # sticky_messages[channel_id] = {"text": str, "last_message": discord.Message}
 sticky_messages = {}
 
+XP_FILE = "xp_data.json"
+if not os.path.exists(XP_FILE):
+    with open(XP_FILE, "w") as f:
+        json.dump({}, f)
+
 @bot.command()
 @commands.has_permissions(manage_messages=True)
 async def sticky(ctx, *, message: str):
@@ -37,7 +42,6 @@ async def sticky(ctx, *, message: str):
 @commands.has_permissions(manage_messages=True)
 async def removesticky(ctx):
     if ctx.channel.id in sticky_messages:
-        # Delete last sticky message if it exists
         last_msg = sticky_messages[ctx.channel.id].get("last_message")
         if last_msg:
             try:
@@ -59,9 +63,19 @@ async def calc(ctx, *, expression: str):
 
 @bot.command()
 async def say(ctx, *, message: str):
-    await ctx.message.delete()  # Delete the command message to keep it clean (optional)
+    await ctx.message.delete()
     await ctx.send(message)
-    
+
+@bot.command()
+async def rank(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    data = await get_user_data(member.id, ctx.guild.id)
+    path = await generate_card(member, data)
+
+    file = discord.File(path, filename="rank.png")
+    await ctx.send(file=file)
+    os.remove(path)
+
 @bot.event
 async def on_member_update(before, after):
     if before.premium_since is None and after.premium_since is not None:
@@ -83,65 +97,122 @@ async def on_message(message):
     data = sticky_messages.get(message.channel.id)
     if data:
         try:
-            # Delete previous sticky message
             if data.get("last_message"):
                 try:
                     await data["last_message"].delete()
                 except:
                     pass
-            # Send new sticky and save the message object
             new_msg = await message.channel.send(data["text"])
             sticky_messages[message.channel.id]["last_message"] = new_msg
         except discord.Forbidden:
             print(f"missing permission to send sticky message in {message.channel.name}")
 
+    await add_xp(message.author.id, message.guild.id, 10)
+
 @bot.event
 async def on_raw_reaction_add(payload):
-    if str(payload.emoji) != TARGET_EMOJI:
+    if str(payload.emoji) != "😆":
         return
 
-    if payload.channel_id == LAUGHBOARD_CHANNEL_ID:
+    if payload.channel_id == 1371776724269797397:
         return
 
     guild = bot.get_guild(payload.guild_id)
+    if not guild:
+        return
+
     channel = guild.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
 
-    reaction = discord.utils.get(message.reactions, emoji=TARGET_EMOJI)
+    reaction = discord.utils.get(message.reactions, emoji="😆")
     if not reaction:
         return
 
     count = reaction.count
-    lb_channel = guild.get_channel(LAUGHBOARD_CHANNEL_ID)
 
-    if message.id in laughboard_data:
-        try:
-            lb_msg = await lb_channel.fetch_message(laughboard_data[message.id])
-            await lb_msg.edit(content=f"{count} {TARGET_EMOJI} reactions")
-        except discord.NotFound:
-            del laughboard_data[message.id]  # clean up if message was deleted
+    laughboard_channel = guild.get_channel(1371776724269797397)
+    if not laughboard_channel:
         return
 
-    # Add to laughboard
-    if count >= THRESHOLD:
+    async for msg in laughboard_channel.history(limit=100):
+        if msg.embeds and msg.embeds[0].timestamp == message.created_at:
+            embed = msg.embeds[0]
+            embed.set_footer(text=f"{count} 😆 reactions")
+            await msg.edit(content=f"{count} 😆 reactions", embed=embed)
+            return
+
+    if count == 2:
         embed = discord.Embed(
             description=message.content,
             color=WHITE,
             timestamp=message.created_at
         )
         embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
-        embed.add_field(name="Jump to Message", value=f"[click here ! !]({message.jump_url})", inline=False)
+        embed.add_field(name="jump to message", value=f"[click here ! !]({message.jump_url})", inline=False)
         if message.attachments:
             embed.set_image(url=message.attachments[0].url)
 
-        lb_msg = await lb_channel.send(content=f"{count} {TARGET_EMOJI} reactions", embed=embed)
-        laughboard_data[message.id] = lb_msg.id
+        await laughboard_channel.send(content="2 😆 reactions", embed=embed)
 
 @bot.event
 async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.watching, name="over /pota ৎ୭")
     await bot.change_presence(status=discord.Status.dnd, activity=activity)
     print(f'Logged in as {bot.user.name}')
+
+async def add_xp(user_id, guild_id, amount):
+    async with aiofiles.open(XP_FILE, "r") as f:
+        data = json.loads(await f.read())
+
+    key = f"{guild_id}-{user_id}"
+    user_data = data.get(key, {"xp": 0, "level": 1})
+    user_data["xp"] += amount
+
+    next_level_xp = user_data["level"] * 100
+    if user_data["xp"] >= next_level_xp:
+        user_data["xp"] -= next_level_xp
+        user_data["level"] += 1
+
+    data[key] = user_data
+
+    async with aiofiles.open(XP_FILE, "w") as f:
+        await f.write(json.dumps(data, indent=2))
+
+    return user_data
+
+async def get_user_data(user_id, guild_id):
+    async with aiofiles.open(XP_FILE, "r") as f:
+        data = json.loads(await f.read())
+    return data.get(f"{guild_id}-{user_id}", {"xp": 0, "level": 1})
+
+async def generate_card(user, user_data):
+    width, height = 600, 180
+    card = Image.new("RGB", (width, height), "#1e1e1e")
+    draw = ImageDraw.Draw(card)
+
+    font = ImageFont.truetype("arial.ttf", 20)
+
+    bar_xp = user_data["xp"]
+    next_level_xp = user_data["level"] * 100
+    bar_length = int((bar_xp / next_level_xp) * 400)
+
+    draw.rectangle((150, 100, 150 + 400, 130), fill="#444")
+    draw.rectangle((150, 100, 150 + bar_length, 130), fill="#00ff99")
+
+    draw.text((150, 50), f"{user.name}", font=font, fill="white")
+    draw.text((150, 140), f"Level {user_data['level']} | XP: {bar_xp}/{next_level_xp}", font=font, fill="white")
+
+    avatar = user.avatar
+    if avatar:
+        avatar_bytes = await avatar.read()
+        with open("temp_avatar.png", "wb") as f:
+            f.write(avatar_bytes)
+        pfp = Image.open("temp_avatar.png").resize((100, 100))
+        card.paste(pfp, (30, 40))
+
+    path = f"rankcard_{user.id}.png"
+    card.save(path)
+    return path
 
 keep_alive()
 bot.run(TOKEN)
