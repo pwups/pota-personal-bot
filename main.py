@@ -7,6 +7,7 @@ from discord.ui import View, Button
 import aiofiles
 from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
+import random
 
 load_dotenv()
 
