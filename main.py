@@ -8,6 +8,10 @@ load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
+laughboard_data = {}  # {original_message_id: laughboard_message_id}
+LAUGHBOARD_CHANNEL_ID = 1371776724269797397
+TARGET_EMOJI = "😆"
+THRESHOLD = 2
 
 intents = discord.Intents.default()
 intents.members = True
@@ -93,37 +97,45 @@ async def on_message(message):
 
 @bot.event
 async def on_raw_reaction_add(payload):
-    if str(payload.emoji) != "😆":
+    if str(payload.emoji) != TARGET_EMOJI:
         return
 
-    if payload.channel_id == 1371776724269797397:
-        return  # prevent triggering in laughboard itself
+    if payload.channel_id == LAUGHBOARD_CHANNEL_ID:
+        return
 
     guild = bot.get_guild(payload.guild_id)
-    if not guild:
-        return
-
     channel = guild.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
 
-    # Count 😆 reactions
-    reaction = discord.utils.get(message.reactions, emoji="😆")
-    if reaction and reaction.count == 2:
-        # Build embed
+    reaction = discord.utils.get(message.reactions, emoji=TARGET_EMOJI)
+    if not reaction:
+        return
+
+    count = reaction.count
+    lb_channel = guild.get_channel(LAUGHBOARD_CHANNEL_ID)
+
+    if message.id in laughboard_data:
+        try:
+            lb_msg = await lb_channel.fetch_message(laughboard_data[message.id])
+            await lb_msg.edit(content=f"{count} {TARGET_EMOJI} reactions")
+        except discord.NotFound:
+            del laughboard_data[message.id]  # clean up if message was deleted
+        return
+
+    # Add to laughboard
+    if count >= THRESHOLD:
         embed = discord.Embed(
             description=message.content,
             color=WHITE,
             timestamp=message.created_at
         )
         embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
-        embed.add_field(name="jump to message", value=f"[click here ! !]({message.jump_url})", inline=False)
+        embed.add_field(name="Jump to Message", value=f"[click here ! !]({message.jump_url})", inline=False)
         if message.attachments:
             embed.set_image(url=message.attachments[0].url)
 
-        # Send to laughboard
-        laughboard_channel = guild.get_channel(1371776724269797397)
-        if laughboard_channel:
-            await laughboard_channel.send(embed=embed)
+        lb_msg = await lb_channel.send(content=f"{count} {TARGET_EMOJI} reactions", embed=embed)
+        laughboard_data[message.id] = lb_msg.id
 
 @bot.event
 async def on_ready():
