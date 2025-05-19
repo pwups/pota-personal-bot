@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+LEVELS_FILE = "levels.json"
+
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
 laughboard_data = {}  # {original_message_id: laughboard_message_id}
