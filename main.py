@@ -4,6 +4,8 @@ from keep_alive import keep_alive
 import os
 from discord.ui import View, Button
 from dotenv import load_dotenv
+from datetime import date, timedelta
+from dotenv import dotenv_values
 
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
@@ -72,6 +74,30 @@ async def on_member_update(before, after):
             embed.set_thumbnail(url=after.avatar.url if after.avatar else after.default_avatar.url)
             await channel.send(embed=embed)
 
+@bot.command()
+async def currentstreak(ctx, *, message: str):
+    await message.reply(
+        f"> <@{message.author.id}>'s current streak is **{current_score_hash[user_id][0]}** days <:003_:1371441152351404074>"
+            )
+
+@bot.command()
+async def personalbest(ctx, *, message: str):
+    await message.reply(
+                f"> <@{message.author.id}>'s highest streak is **{highest_score_hash[user_id][0]}** days <:tiktok_cool:1371440776483176550>"
+            )
+
+@bot.command()
+async def lbstreak(ctx, *, message: str):
+    sorted(highest_score_hash, key=highest_score_hash.get, reverse=True)
+            counter = 1
+            leaderboard_msg = ""
+            for value in highest_score_hash.values():
+                user = value[1]
+                score = value[0]
+                leaderboard_msg += f"{counter}. {user}: **{score}** days <:kassy:1372204371462455420>\n"
+                counter += 1
+            await message.reply(leaderboard_msg)
+
 @bot.event
 async def on_message(message):
     await bot.process_commands(message)
@@ -137,6 +163,48 @@ async def on_raw_reaction_add(payload):
             embed.set_image(url=message.attachments[0].url)
 
         await laughboard_channel.send(content="2 😆 reactions", embed=embed)
+
+@bot.event
+async def on_message(message):
+    """
+    Reads messages and checks for commands
+    """
+    if message.channel.id == CHANNEL_ID:
+        user = str(message.author)
+        user_id = user.split("#")[1]
+        user_message = str(message.content)
+        channel = str(message.channel.name)
+        message_day = date.today()
+        day_t = timedelta(1)
+        yesterday_date = message_day - day_t
+        print(f"{user_id}: {user_message} ({channel}) / {message_day}")
+
+        # Do not count the messages from the bit
+        if message.author == client.user:
+            return
+
+        if user_id not in highest_score_hash and user_id not in current_score_hash:
+            highest_score_hash[user_id] = [1, user]
+            current_score_hash[user_id] = [1, message_day]
+
+        elif current_score_hash[user_id][1] == yesterday_date:
+            current_score_hash[user_id][0] += 1
+            current_score_hash[user_id][1] = message_day
+            if highest_score_hash[user_id][0] <= current_score_hash[user_id][0]:
+                highest_score_hash[user_id][0] = current_score_hash[user_id][0]
+                highest_score_hash[user_id][1] = user
+
+        elif (
+            current_score_hash[user_id][1] != yesterday_date
+            and current_score_hash[user_id][1] != date.today()
+        ):
+            if highest_score_hash[user_id][0] <= current_score_hash[user_id][0]:
+                highest_score_hash[user_id][0] = current_score_hash[user_id][0]
+                highest_score_hash[user_id][1] = user
+            current_score_hash[user_id][0] = 1
+            current_score_hash[user_id][1] = message_day
+
+        print(f"highest {highest_score_hash}, current {current_score_hash}")
 
 @bot.event
 async def on_ready():
