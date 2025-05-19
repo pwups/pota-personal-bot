@@ -2,29 +2,8 @@ import discord
 from discord.ext import commands
 from keep_alive import keep_alive
 import os
-import json
 from discord.ui import View, Button
-import aiofiles
-from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
-import random
-
-load_dotenv()
-
-LEVELS_FILE = "levels.json"
-
-def load_levels():
-    if os.path.exists(LEVELS_FILE):
-        with open (LEVELS_FILE, "r") as f:
-            return json.load(f)
-            return{}
-
-def save_levels(data):
-    with open (LEVELS_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
-def get_level(xp):
-    return int((xp / 50) ** 0.5)
 
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
@@ -46,11 +25,6 @@ WHITE = discord.Color.from_str("#FFFFFF")
 
 # sticky_messages[channel_id] = {"text": str, "last_message": discord.Message}
 sticky_messages = {}
-
-XP_FILE = "xp_data.json"
-if not os.path.exists(XP_FILE):
-    with open(XP_FILE, "w") as f:
-        json.dump({}, f)
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
@@ -85,16 +59,6 @@ async def calc(ctx, *, expression: str):
 async def say(ctx, *, message: str):
     await ctx.message.delete()
     await ctx.send(message)
-
-@bot.command()
-async def rank(ctx, member: discord.Member = None):
-    member = member or ctx.author
-    data = await get_user_data(member.id, ctx.guild.id)
-    path = await generate_card(member, data)
-
-    file = discord.File(path, filename="rank.png")
-    await ctx.send(file=file)
-    os.remove(path)
 
 @bot.event
 async def on_member_update(before, after):
@@ -179,82 +143,6 @@ async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.watching, name="over /pota ৎ୭")
     await bot.change_presence(status=discord.Status.dnd, activity=activity)
     print(f'Logged in as {bot.user.name}')
-
-async def add_xp(user_id, guild_id, amount):
-    async with aiofiles.open(XP_FILE, "r") as f:
-        data = json.loads(await f.read())
-
-    key = f"{guild_id}-{user_id}"
-    user_data = data.get(key, {"xp": 0, "level": 1})
-    user_data["xp"] += amount
-
-    next_level_xp = user_data["level"] * 100
-    if user_data["xp"] >= next_level_xp:
-        user_data["xp"] -= next_level_xp
-        user_data["level"] += 1
-
-    data[key] = user_data
-
-    async with aiofiles.open(XP_FILE, "w") as f:
-        await f.write(json.dumps(data, indent=2))
-
-    return user_data
-
-async def get_user_data(user_id, guild_id):
-    async with aiofiles.open(XP_FILE, "r") as f:
-        data = json.loads(await f.read())
-    return data.get(f"{guild_id}-{user_id}", {"xp": 0, "level": 1})
-
-async def generate_card(user, user_data):
-    width, height = 600, 180
-    card = Image.new("RGB", (width, height), "#1e1e1e")
-    draw = ImageDraw.Draw(card)
-
-    font = ImageFont.load_default()
-
-    bar_xp = user_data["xp"]
-    next_level_xp = user_data["level"] * 100
-    bar_length = int((bar_xp / next_level_xp) * 400)
-
-    draw.rectangle((150, 100, 150 + 400, 130), fill="#444")
-    draw.rectangle((150, 100, 150 + bar_length, 130), fill="#00ff99")
-
-    draw.text((150, 50), f"{user.name}", font=font, fill="white")
-    draw.text((150, 140), f"Level {user_data['level']} | XP: {bar_xp}/{next_level_xp}", font=font, fill="white")
-
-    avatar = user.avatar
-    if avatar:
-        avatar_bytes = await avatar.read()
-        with open("temp_avatar.png", "wb") as f:
-            f.write(avatar_bytes)
-        pfp = Image.open("temp_avatar.png").resize((100, 100))
-        card.paste(pfp, (30, 40))
-
-    path = f"rankcard_{user.id}.png"
-    card.save(path)
-    return path
-
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    # XP system
-    levels = load_levels()
-    user_id = str(message.author.id)
-
-    if user_id not in levels:
-        levels[user_id] = {"xp": 0, "level": 1}
-
-    xp_gain = random.randint(5, 15)
-    levels[user_id]["xp"] += xp_gain
-
-    new_level = get_level(levels[user_id]["xp"])
-    if new_level > levels[user_id]["level"]:
-        levels[user_id]["level"] = new_level
-        await message.channel.send(f"{message.author.mention} leveled up to **level {new_level}**!")
-
-    save_levels(levels)
 
 keep_alive()
 bot.run(TOKEN)
