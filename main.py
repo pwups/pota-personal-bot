@@ -89,14 +89,14 @@ async def personalbest(ctx, *, message: str):
 @bot.command()
 async def lbstreak(ctx, *, message: str):
     sorted(highest_score_hash, key=highest_score_hash.get, reverse=True)
-            counter = 1
-            leaderboard_msg = ""
-            for value in highest_score_hash.values():
-                user = value[1]
-                score = value[0]
-                leaderboard_msg += f"{counter}. {user}: **{score}** days <:kassy:1372204371462455420>\n"
-                counter += 1
-            await message.reply(leaderboard_msg)
+    counter = 1
+    leaderboard_msg = ""
+    for value in highest_score_hash.values():
+        user = value[1]
+        score = value[0]
+        leaderboard_msg += f"{counter}. {user}: **{score}** days <:kassy:1372204371462455420>\n"
+        counter += 1
+        await message.reply(leaderboard_msg)
 
 @bot.event
 async def on_message(message):
