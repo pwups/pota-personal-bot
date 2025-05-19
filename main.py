@@ -10,21 +10,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LEVELS_FILE = "levels.json"
-
-def load_levels():
-    if os.path.exists(LEVELS_FILE):
-        with open(LEVELS_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_levels(data):
-    with open(LEVELS_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
-def get_level(xp):
-    return int((xp / 50) ** 0.5)  # simple level formula
-
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
 laughboard_data = {}  # {original_message_id: laughboard_message_id}
@@ -94,52 +79,6 @@ async def rank(ctx, member: discord.Member = None):
     file = discord.File(path, filename="rank.png")
     await ctx.send(file=file)
     os.remove(path)
-
-@bot.command()
-async def leaderboard(ctx):
-    data = load_levels()
-    if not data:
-        return await ctx.send("> <:00_warning:1373921609601126441> no level data found.")
-
-    # Sort by XP descending
-    sorted_data = sorted(data.items(), key=lambda x: x[1]["xp"], reverse=True)
-    entries_per_page = 10
-    total_pages = (len(sorted_data) + entries_per_page - 1) // entries_per_page
-
-    async def generate_embed(page):
-        start = page * entries_per_page
-        end = start + entries_per_page
-        embed = discord.Embed(title="level leaderboard <a:1G4_star_red:1372168764392476693>", color=RED)
-        for index, (user_id, stats) in enumerate(sorted_data[start:end], start=start + 1):
-            user = ctx.guild.get_member(int(user_id))
-            name = user.mention if user else f"<@{user_id}>"
-            embed.add_field(
-                name=f"{index}. {name}",
-                value=f"level: **{stats['level']}** | XP: **{stats['xp']}**",
-                inline=False
-            )
-        embed.set_footer(text=f"page {page + 1}/{total_pages}")
-        return embed
-
-    class LeaderboardView(View):
-        def __init__(self):
-            super().__init__(timeout=60)
-            self.page = 0
-
-        @discord.ui.button(label="previous", style=discord.ButtonStyle.red)
-        async def previous(self, interaction: discord.Interaction, button: Button):
-            if self.page > 0:
-                self.page -= 1
-                await interaction.response.edit_message(embed=await generate_embed(self.page), view=self)
-
-        @discord.ui.button(label="next", style=discord.ButtonStyle.green)
-        async def next(self, interaction: discord.Interaction, button: Button):
-            if self.page < total_pages - 1:
-                self.page += 1
-                await interaction.response.edit_message(embed=await generate_embed(self.page), view=self)
-
-    view = LeaderboardView()
-    await ctx.send(embed=await generate_embed(0), view=view)
 
 @bot.event
 async def on_member_update(before, after):
