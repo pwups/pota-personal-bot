@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+LEVELS_FILE = levels.json
+
 def load_levels():
     if os.path.exists(LEVELS_FILE):
         with open (LEVELS_FILE, "r") as f:
