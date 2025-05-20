@@ -99,6 +99,21 @@ async def lbstreak(ctx):
         counter += 1
     await ctx.send(leaderboard_msg)
 
+@bot.command()
+async def lbstreak(ctx):
+    if not highest_score_hash:
+        await ctx.send("> <:00_warning:1373921609601126441> **no leaderboard data available yet.**")
+        return
+
+    # Sort and build leaderboard
+    sorted_scores = sorted(highest_score_hash.values(), key=lambda x: x[0], reverse=True)
+    leaderboard_msg = ""
+    for i, (score, user) in enumerate(sorted_scores, start=1):
+        leaderboard_msg += f"{i}. {user}: **{score}** days <:kassy:1372204371462455420>\n"
+
+    await ctx.send(leaderboard_msg)
+
+
 @bot.event
 async def on_member_update(before, after):
     if before.premium_since is None and after.premium_since is not None:
