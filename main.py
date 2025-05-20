@@ -5,19 +5,23 @@ import os
 from discord.ui import View, Button
 from dotenv import load_dotenv
 from datetime import date, timedelta
-from dotenv import dotenv_values
 import json
 
+# Load .env variables
+load_dotenv()
+
+# Load config.json
 with open("config.json", "r") as f:
     config = json.load(f)
 
 TOKEN = os.getenv("TOKEN")
 GUILD_ID = 1319396490543890482
-laughboard_data = {}  # {original_message_id: laughboard_message_id}
 LAUGHBOARD_CHANNEL_ID = 1371776724269797397
 TARGET_EMOJI = "😆"
 THRESHOLD = 2
 CHANNEL_ID = int(config["CHANNEL_ID"])
+
+# XP and streak tracking
 highest_score_hash = {}
 current_score_hash = {}
 
@@ -69,48 +73,97 @@ async def say(ctx, *, message: str):
     await ctx.message.delete()
     await ctx.send(message)
 
+@bot.command()
+async def currentstreak(ctx):
+    user_id = str(ctx.author.id)
+    if user_id in current_score_hash:
+        await ctx.send(f"> <@{ctx.author.id}>'s current streak is **{current_score_hash[user_id][0]}** days <:003_:1371441152351404074>")
+    else:
+        await ctx.send("You don't have a streak yet.")
+
+@bot.command()
+async def personalbest(ctx):
+    user_id = str(ctx.author.id)
+    if user_id in highest_score_hash:
+        await ctx.send(f"> <@{ctx.author.id}>'s highest streak is **{highest_score_hash[user_id][0]}** days <:tiktok_cool:1371440776483176550>")
+    else:
+        await ctx.send("You don't have a best streak yet.")
+
+@bot.command()
+async def lbstreak(ctx):
+    sorted_scores = sorted(highest_score_hash.items(), key=lambda x: x[1][0], reverse=True)
+    leaderboard_msg = ""
+    counter = 1
+    for user_id, (score, user) in sorted_scores:
+        leaderboard_msg += f"{counter}. {user}: **{score}** days <:kassy:1372204371462455420>\n"
+        counter += 1
+    await ctx.send(leaderboard_msg)
+
 @bot.event
 async def on_member_update(before, after):
     if before.premium_since is None and after.premium_since is not None:
-        channel = discord.utils.get(after.guild.text_channels, name="﹒mail")
+        channel = discord.utils.get(after.guild.text_channels, name="－－mail")
         if channel:
             embed = discord.Embed(
-                description=f"_ _\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀﹒﹒ —  {after.mention}  ♡\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀ <:bow_red:1371440730597363715>  __boosted__ **/pota**\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀` check `﹕⠀*[perks](https://discord.com/channels/1319396490543890482/1371318261509263460)*\n_ _",
+                description=f"_ _\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀﹒﹒ —  {after.mention}  ♡\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀<:bow_red:1371440730597363715>  __boosted__ **/pota**\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀` check `﹕⠀*[perks](https://discord.com/channels/1319396490543890482/1371318261509263460)*\n_ _",
                 color=0xd63737
             )
             embed.set_thumbnail(url=after.avatar.url if after.avatar else after.default_avatar.url)
             await channel.send(embed=embed)
 
-@bot.command()
-async def currentstreak(ctx, *, message: str):
-    await message.reply(
-        f"> <@{message.author.id}>'s current streak is **{current_score_hash[user_id][0]}** days <:003_:1371441152351404074>"
-            )
+@bot.event
+async def on_raw_reaction_add(payload):
+    if str(payload.emoji) != TARGET_EMOJI:
+        return
 
-@bot.command()
-async def personalbest(ctx, *, message: str):
-    await message.reply(
-                f"> <@{message.author.id}>'s highest streak is **{highest_score_hash[user_id][0]}** days <:tiktok_cool:1371440776483176550>"
-            )
+    if payload.channel_id == LAUGHBOARD_CHANNEL_ID:
+        return
 
-@bot.command()
-async def lbstreak(ctx, *, message: str):
-    sorted(highest_score_hash, key=highest_score_hash.get, reverse=True)
-    counter = 1
-    leaderboard_msg = ""
-    for value in highest_score_hash.values():
-        user = value[1]
-        score = value[0]
-        leaderboard_msg += f"{counter}. {user}: **{score}** days <:kassy:1372204371462455420>\n"
-        counter += 1
-        await message.reply(leaderboard_msg)
+    guild = bot.get_guild(payload.guild_id)
+    if not guild:
+        return
+
+    channel = guild.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+
+    reaction = discord.utils.get(message.reactions, emoji=TARGET_EMOJI)
+    if not reaction:
+        return
+
+    count = reaction.count
+
+    laughboard_channel = guild.get_channel(LAUGHBOARD_CHANNEL_ID)
+    if not laughboard_channel:
+        return
+
+    async for msg in laughboard_channel.history(limit=100):
+        if msg.embeds and msg.embeds[0].timestamp == message.created_at:
+            embed = msg.embeds[0]
+            embed.set_footer(text=f"{count} {TARGET_EMOJI} reactions")
+            await msg.edit(content=f"{count} {TARGET_EMOJI} reactions", embed=embed)
+            return
+
+    if count == THRESHOLD:
+        embed = discord.Embed(
+            description=message.content,
+            color=WHITE,
+            timestamp=message.created_at
+        )
+        embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
+        embed.add_field(name="jump to message", value=f"[click here ! !]({message.jump_url})", inline=False)
+        if message.attachments:
+            embed.set_image(url=message.attachments[0].url)
+
+        await laughboard_channel.send(content=f"{THRESHOLD} {TARGET_EMOJI} reactions", embed=embed)
 
 @bot.event
 async def on_message(message):
     await bot.process_commands(message)
+
     if message.author.bot:
         return
 
+    # Sticky Message Logic
     data = sticky_messages.get(message.channel.id)
     if data:
         try:
@@ -122,73 +175,18 @@ async def on_message(message):
             new_msg = await message.channel.send(data["text"])
             sticky_messages[message.channel.id]["last_message"] = new_msg
         except discord.Forbidden:
-            print(f"missing permission to send sticky message in {message.channel.name}")
+            print(f"Missing permission to send sticky message in {message.channel.name}")
 
-    await add_xp(message.author.id, message.guild.id, 10)
-
-@bot.event
-async def on_raw_reaction_add(payload):
-    if str(payload.emoji) != "😆":
-        return
-
-    if payload.channel_id == 1371776724269797397:
-        return
-
-    guild = bot.get_guild(payload.guild_id)
-    if not guild:
-        return
-
-    channel = guild.get_channel(payload.channel_id)
-    message = await channel.fetch_message(payload.message_id)
-
-    reaction = discord.utils.get(message.reactions, emoji="😆")
-    if not reaction:
-        return
-
-    count = reaction.count
-
-    laughboard_channel = guild.get_channel(1371776724269797397)
-    if not laughboard_channel:
-        return
-
-    async for msg in laughboard_channel.history(limit=100):
-        if msg.embeds and msg.embeds[0].timestamp == message.created_at:
-            embed = msg.embeds[0]
-            embed.set_footer(text=f"{count} 😆 reactions")
-            await msg.edit(content=f"{count} 😆 reactions", embed=embed)
-            return
-
-    if count == 2:
-        embed = discord.Embed(
-            description=message.content,
-            color=WHITE,
-            timestamp=message.created_at
-        )
-        embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
-        embed.add_field(name="jump to message", value=f"[click here ! !]({message.jump_url})", inline=False)
-        if message.attachments:
-            embed.set_image(url=message.attachments[0].url)
-
-        await laughboard_channel.send(content="2 😆 reactions", embed=embed)
-
-@bot.event
-async def on_message(message):
-    """
-    Reads messages and checks for commands
-    """
+    # Streak Tracking Logic
     if message.channel.id == CHANNEL_ID:
         user = str(message.author)
-        user_id = user.split("#")[1]
+        user_id = str(message.author.id)
         user_message = str(message.content)
         channel = str(message.channel.name)
         message_day = date.today()
         day_t = timedelta(1)
         yesterday_date = message_day - day_t
         print(f"{user_id}: {user_message} ({channel}) / {message_day}")
-
-        # Do not count the messages from the bit
-        if message.author == client.user:
-            return
 
         if user_id not in highest_score_hash and user_id not in current_score_hash:
             highest_score_hash[user_id] = [1, user]
@@ -215,7 +213,7 @@ async def on_message(message):
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(type=discord.ActivityType.watching, name="over /pota ৎ୭")
+    activity = discord.Activity(type=discord.ActivityType.watching, name="over /pota ୱଭ")
     await bot.change_presence(status=discord.Status.dnd, activity=activity)
     print(f'Logged in as {bot.user.name}')
 
