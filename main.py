@@ -79,7 +79,7 @@ async def currentstreak(ctx):
     if user_id in current_score_hash:
         await ctx.send(f"> <@{ctx.author.id}>'s current streak is **{current_score_hash[user_id][0]}** days <:003_:1371441152351404074>")
     else:
-        await ctx.send("You don't have a streak yet.")
+        await ctx.send("> <:00_warning:1373921609601126441> **you don't have a streak yet.**")
 
 @bot.command()
 async def personalbest(ctx):
@@ -87,7 +87,7 @@ async def personalbest(ctx):
     if user_id in highest_score_hash:
         await ctx.send(f"> <@{ctx.author.id}>'s highest streak is **{highest_score_hash[user_id][0]}** days <:tiktok_cool:1371440776483176550>")
     else:
-        await ctx.send("You don't have a best streak yet.")
+        await ctx.send("> <:00_warning:1373921609601126441> **you don't have a best streak yet.**")
 
 @bot.command()
 async def lbstreak(ctx):
