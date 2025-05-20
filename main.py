@@ -91,16 +91,6 @@ async def personalbest(ctx):
 
 @bot.command()
 async def lbstreak(ctx):
-    sorted_scores = sorted(highest_score_hash.items(), key=lambda x: x[1][0], reverse=True)
-    leaderboard_msg = ""
-    counter = 1
-    for user_id, (score, user) in sorted_scores:
-        leaderboard_msg += f"{counter}. {user}: **{score}** days <:kassy:1372204371462455420>\n"
-        counter += 1
-    await ctx.send(leaderboard_msg)
-
-@bot.command()
-async def lbstreak(ctx):
     if not highest_score_hash:
         await ctx.send("> <:00_warning:1373921609601126441> **no leaderboard data available yet.**")
         return
