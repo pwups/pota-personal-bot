@@ -122,7 +122,7 @@ async def lbstreak(ctx):
 @bot.event
 async def on_member_update(before, after):
     if before.premium_since is None and after.premium_since is not None:
-        channel = discord.utils.get(after.guild.text_channels, name="－－mail")
+        channel = discord.utils.get(after.guild.text_channels, name="﹒mail")
         if channel:
             embed = discord.Embed(
                 description=f"_ _\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀﹒﹒ —  {after.mention}  ♡\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀<:bow_red:1371440730597363715>  __boosted__ **/pota**\n_ _⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀` check `﹕⠀*[perks](https://discord.com/channels/1319396490543890482/1371318261509263460)*\n_ _",
@@ -233,7 +233,7 @@ async def on_message(message):
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(type=discord.ActivityType.watching, name="over /pota ୱଭ")
+    activity = discord.Activity(type=discord.ActivityType.watching, name="over /pota ৎ୭")
     await bot.change_presence(status=discord.Status.dnd, activity=activity)
     print(f'Logged in as {bot.user.name}')
 
