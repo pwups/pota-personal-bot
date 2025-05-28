@@ -46,7 +46,7 @@ async def help(ctx):
     embed = discord.Embed(
         title="<:kassy:1372204371462455420> help menu",
         description="**p?help** - shows all commands of the bot\n**p?calc <expression>** - evaluate a math expression\n**p?say <message>** - make the bot say a message\n**p?sticky <message>** - enable sticky message\n**p?removesticky** - disable sticky message\n**p?currentstreak** - see your current streak\n**p?lbstreak** - see streak leaderboard\n**p?personalbest** - see your highest streak",
-        color=RED
+        color=RED,
         timestamp=ctx.message.created_at
     )
     embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else discord.Embed.Empty)
